@@ -1,0 +1,245 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('botch:server');
+var http = require('http');
+
+var MongoClient = require('mongodb').MongoClient;
+var CronJob = require("cron").CronJob;
+var client = require('cheerio-httpcli');
+var moment = require('moment');
+
+
+// {
+//   date: Number,
+//   scores: [
+//     {
+//       info: { start: String, inning: String},
+//       home: { team: String, Score: Number},
+//       away: { team: String, Score: Number}
+//     }
+//   ]
+// }
+
+/**
+ * Cron Job
+ */
+// new CronJob('0 * 12-23 * 3-10 *', function() {
+new CronJob('0,20,40 * 0-11,12-23 * 2-10 *', function() {
+  var m = moment();
+  if (m.hour() < 1) {
+    m = m.add(-1, 'day').format("YYYYMMDD");
+  } else {
+    m = m.format("YYYYMMDD");
+  };
+  console.log(m);
+  startScrap(m);
+}, null, true, 'Asia/Tokyo');
+
+
+function startScrap (m) {
+  client.fetch('http://baseball.yahoo.co.jp/npb/schedule/', {date: m}, function (err, $, res) {
+    // スキーマ
+    var output = {
+      date: m,
+      score: []
+    };
+
+    // 試合数
+    var games = $('.teams').length;
+    var teams = [];
+    var scores = [];
+    var innings = [];
+    var starts = [];
+
+    // チーム取得
+    $('.teams .yjMS').each(function (data) {
+      var team = $(this).text();
+      switch (team) {
+        case '巨人':
+          team = 'G';
+          break;
+        case '阪神':
+          team = 'T';
+          break;
+        case '中日':
+          team = 'D';
+          break;
+        case 'ヤクルト':
+          team = 'YS';
+          break;
+        case '広島':
+          team = 'C';
+          break;
+        case 'ＤｅＮＡ':
+          team = 'DB';
+          break;
+        case 'ソフトバンク':
+          team = 'H';
+          break;
+        case '日本ハム':
+          team = 'F';
+          break;
+        case 'オリックス':
+          team = 'BF';
+          break;
+        case 'ロッテ':
+          team = 'M';
+          break;
+        case '楽天':
+          team = 'E';
+          break;
+        case '西武':
+          team = 'L';
+          break;
+      }
+      teams.push(team);
+    });
+
+    // スコア取得
+    $('.teams .score_r').each(function (data) {
+      var score = $(this).text();
+      scores.push(score);
+    });
+
+    // イニング取得
+    $('.teams .yjMSt').each(function (data) {
+      var inning = $(this).text();
+      inning = inning.replace("回", "");
+      inning = inning.replace("表", "t");
+      inning = inning.replace("裏", "b");
+      inning = inning.replace("試合前", "yet");
+      inning = inning.replace("結果", "end");
+      inning = inning.replace("中止", "stop");
+      innings.push(inning);
+    });
+
+    // 開始時間取得
+    $('.teams .yjSt').each(function (data) {
+      var start = $(this).text();
+      if (start !== '予告先発' && start !== '戦評' && start !== '') {
+        console.log(start);
+        starts.push(start);
+      };
+    });
+
+    for (var i = 0; i < games; i++) {
+      var data = {
+        info: {
+          start: starts[i],
+          inning: innings[i]
+        },
+        home: {
+          team: teams[i*2+1],
+          score: scores[i*2+1]
+        },
+        away: {
+          team: teams[i*2],
+          score: scores[i*2]
+        }
+      };
+      output.score.push(data);
+    };
+    console.log('試合数: ' + games);
+    updateDatabase(output);
+  });
+}
+
+function updateDatabase (data) {
+  console.log(data.score);
+  MongoClient.connect("mongodb://localhost/botch", function (err, db) {
+    if (err) { console.log('err'); };
+    db.collection("scores", function (err, collection) {
+      collection.update({date: data.date}, data, {upsert: true}, function (err, result) {
+        console.log(result);
+      });
+    });
+  });
+}
+
+
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || '3000');
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
