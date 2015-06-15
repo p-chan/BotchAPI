@@ -27,8 +27,8 @@ app.use(require('stylus').middleware(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes.index);
-app.use('/v1/ranks/:year/:month/:date', routes.ranks);
-app.get('/v1/scores/:date', routes.scores);
+// app.use('/v1/ranks/:year/:month/:date', routes.ranks);
+app.get('/v0/scores/:date', routes.scores);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
