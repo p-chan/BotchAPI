@@ -33,7 +33,7 @@ var moment = require('moment');
  * Cron Job
  */
 // new CronJob('0 * 12-23 * 3-10 *', function() {
-new CronJob('0,20,40 * 0-11,12-23 * 2-10 *', function() {
+new CronJob('0,20,40 * 0-1,12-23 * 2-10 *', function() {
   var m = moment();
   if (m.hour() < 1) {
     m = m.add(-1, 'day').format("YYYYMMDD");
