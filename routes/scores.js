@@ -2,14 +2,11 @@ var express = require('express');
 var router = express.Router();
 var MongoClient = require('mongodb').MongoClient;
 
-var conf = require('../conf.json');
-var MongoURL = 'mongodb://' + conf.db.user + ':' + conf.db.pass + '@ds047802.mongolab.com:47802/heroku_j6hnjlq5';
-
 /* GET users listing. */
 router.get('/v0/scores/:date', function(req, res, next) {
   var target = req.params.date;
 
-  MongoClient.connect(MongoURL, function (err, db) {
+  MongoClient.connect(process.env.MONGOLAB_URI, function (err, db) {
     if (err) { console.log('err'); };
     db.collection("scores", function (err, collection) {
       collection.find({date: target}).toArray(function (err, items) {
