@@ -153,7 +153,7 @@ function startScrap (m) {
 }
 
 function updateDatabase (data) {
-  MongoClient.connect(rocess.env.MONGOLAB_URI, function (err, db) {
+  MongoClient.connect(process.env.MONGOLAB_URI, function (err, db) {
     if (err) { console.log('err'); };
     db.collection("scores", function (err, collection) {
       collection.update({date: data.date}, data, {upsert: true}, function (err, result) {
