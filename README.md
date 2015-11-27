@@ -1,9 +1,15 @@
-Botch API
+Botch API (公開停止中)
 ===
-Botchはプロ野球の試合データをJSON形式で配布するAPIです。
-2015/06/14~の試合データを取り扱っています。
 
-## Usage
+```
+追記: 2015/11/27
+現在、APIの公開を停止しています。
+```
+
+Botchはプロ野球の試合データをJSON形式で配布していたAPIです。
+2015/06/14~の試合データを取り扱っていました。
+
+## Usage (現在は利用できません)
 
 ### Get Score
 #### Request
@@ -29,12 +35,6 @@ Botchはプロ野球の試合データをJSON形式で配布するAPIです。
   ]
 }
 ```
-
-## Scraping from
-[SportsNavi - Yahoo](http://sports.yahoo.co.jp/)
-
-## Licence
-[MIT](https://github.com/tcnksm/tool/blob/master/LICENCE)
 
 ## Author
 [@p1ch_jp](http://p1ch.jp)
